@@ -1,0 +1,88 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# ----------------------------
+# Load Dataset
+# ----------------------------
+df = pd.read_csv("electricity_consumption.csv")
+
+# Convert Date column to datetime
+df["Date"] = pd.to_datetime(df["Date"])
+ 
+# Extract Year and Month
+df["Year"] = df["Date"].dt.year
+df["Month"] = df["Date"].dt.strftime("%b")
+
+# ----------------------------
+# Scenario 1
+# Overall Consumption Trends
+# ----------------------------
+
+monthly = (
+    df.groupby(df["Date"].dt.to_period("M"))["Consumption"]
+      .sum()
+)
+
+plt.figure(figsize=(14,6))
+monthly.plot(marker="o")
+plt.title("Monthly Electricity Consumption in India")
+plt.xlabel("Month")
+plt.ylabel("Electricity Consumption")
+plt.grid(True)
+plt.show()
+
+# ----------------------------
+# Scenario 2
+# Regional Variations
+# ----------------------------
+
+regional = (
+    df.groupby("Region")["Consumption"]
+      .sum()
+      .sort_values(ascending=False)
+)
+
+plt.figure(figsize=(8,6))
+regional.plot(kind="bar")
+plt.title("Electricity Consumption by Region")
+plt.xlabel("Region")
+plt.ylabel("Consumption")
+plt.xticks(rotation=0)
+plt.show()
+
+# ----------------------------
+# Scenario 3
+# Recovery After Lockdown
+# ----------------------------
+
+pre_lockdown = df[
+    (df["Date"] >= "2020-01-01") &
+    (df["Date"] <= "2020-03-24")
+]
+
+post_lockdown = df[
+    (df["Date"] >= "2020-07-01") &
+    (df["Date"] <= "2020-12-31")
+]
+
+pre = pre_lockdown.groupby("State")["Consumption"].mean()
+post = post_lockdown.groupby("State")["Consumption"].mean()
+
+recovery = pd.DataFrame({
+    "Pre_Lockdown": pre,
+    "Post_Lockdown": post
+})
+
+recovery["Recovery_%"] = (
+    recovery["Post_Lockdown"] /
+    recovery["Pre_Lockdown"] * 100
+)
+
+print(recovery.sort_values("Recovery_%", ascending=False))
+
+plt.figure(figsize=(12,6))
+recovery["Recovery_%"].sort_values().plot(kind="barh")
+plt.title("Electricity Demand Recovery After Lockdown")
+plt.xlabel("Recovery (%)")
+plt.ylabel("State")
+plt.show()
